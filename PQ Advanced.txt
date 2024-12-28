@@ -1,0 +1,63 @@
+let
+    Source = Excel.Workbook(File.Contents("C:\Users\ntijani001\OneDrive - pwc\Bureau\Sample01.xlsx"), null, true),
+    input_Sheet = Source{[Item="input",Kind="Sheet"]}[Data],
+    Source01 = Table.TransformColumnTypes(input_Sheet,{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}, {"Column4", type text}, {"Column5", type any}, {"Column6", type any}, {"Column7", type any}, {"Column8", type any}, {"Column9", type any}, {"Column10", type any}, {"Column11", type any}, {"Column12", type any}, {"Column13", type any}, {"Column14", type any}, {"Column15", type any}, {"Column16", type any}, {"Column17", type any}, {"Column18", type any}, {"Column19", type any}, {"Column20", type any}, {"Column21", type any}, {"Column22", type any}, {"Column23", type any}, {"Column24", type any}, {"Column25", type any}, {"Column26", type any}, {"Column27", type any}, {"Column28", type any}, {"Column29", type any}, {"Column30", type any}, {"Column31", type any}, {"Column32", type any}, {"Column33", type any}, {"Column34", type any}, {"Column35", type any}, {"Column36", type any}, {"Column37", type any}, {"Column38", type any}, {"Column39", type any}, {"Column40", type any}, {"Column41", type any}, {"Column42", type any}, {"Column43", type any}, {"Column44", type any}, {"Column45", type any}, {"Column46", type any}, {"Column47", type any}, {"Column48", type any}, {"Column49", type any}, {"Column50", type any}, {"Column51", type any}, {"Column52", type any}, {"Column53", type any}, {"Column54", type any}, {"Column55", type any}, {"Column56", type any}, {"Column57", type any}, {"Column58", type any}, {"Column59", type any}, {"Column60", type any}, {"Column61", type any}, {"Column62", type any}, {"Column63", type any}, {"Column64", type any}, {"Column65", type any}, {"Column66", type any}, {"Column67", type any}, {"Column68", type any}, {"Column69", type any}, {"Column70", type any}, {"Column71", type text}, {"Column72", type text}, {"Column73", type text}, {"Column74", type text}, {"Column75", type any}, {"Column76", type text}, {"Column77", type text}, {"Column78", type text}, {"Column79", type text}, {"Column80", type any}, {"Column81", type text}, {"Column82", type text}, {"Column83", type text}, {"Column84", type text}, {"Column85", type any}, {"Column86", type text}, {"Column87", type text}, {"Column88", type text}, {"Column89", type text}, {"Column90", type any}, {"Column91", type text}, {"Column92", type text}, {"Column93", type text}, {"Column94", type text}, {"Column95", type any}, {"Column96", type text}, {"Column97", type text}, {"Column98", type text}, {"Column99", type text}, {"Column100", type any}, {"Column101", type text}, {"Column102", type text}, {"Column103", type text}, {"Column104", type text}, {"Column105", type any}, {"Column106", type text}, {"Column107", type text}, {"Column108", type text}, {"Column109", type text}, {"Column110", type any}, {"Column111", type text}, {"Column112", type text}, {"Column113", type text}, {"Column114", type text}, {"Column115", type any}, {"Column116", type text}, {"Column117", type text}, {"Column118", type text}, {"Column119", type text}, {"Column120", type any}, {"Column121", type text}, {"Column122", type text}, {"Column123", type text}, {"Column124", type text}, {"Column125", type any}, {"Column126", type text}, {"Column127", type text}, {"Column128", type text}, {"Column129", type text}, {"Column130", type any}, {"Column131", type text}, {"Column132", type text}, {"Column133", type text}, {"Column134", type text}, {"Column135", type any}, {"Column136", type text}, {"Column137", type text}, {"Column138", type text}, {"Column139", type text}, {"Column140", type any}, {"Column141", type text}, {"Column142", type text}, {"Column143", type text}, {"Column144", type text}, {"Column145", type any}, {"Column146", type text}, {"Column147", type text}, {"Column148", type text}, {"Column149", type text}, {"Column150", type any}, {"Column151", type text}, {"Column152", type text}, {"Column153", type text}, {"Column154", type text}, {"Column155", type any}, {"Column156", type text}, {"Column157", type text}, {"Column158", type text}, {"Column159", type text}, {"Column160", type any}, {"Column161", type text}, {"Column162", type text}, {"Column163", type text}, {"Column164", type text}}),
+    Level1Headers = List.Skip(List.RemoveNulls(
+Record.ToList(Source01{0})
+),
+4),
+    Level2Headers = List.LastN(List.Distinct(
+Record.ToList(Source01{1})
+),2
+),
+    Level3Headers = List.ReplaceValue(List.FirstN(List.Skip(Record.ToList(Source01{2}),4),5),null,"None",Replacer.ReplaceValue),
+    Data = Table.Skip(Source01,3),
+    ConvertColumnsToList = Table.ToColumns(Data),
+    SkippedTheCommonColumns = List.Skip(ConvertColumnsToList,4),
+    GroupedColumnsByDate = List.Transform(List.Split(
+SkippedTheCommonColumns, 
+5 
+), each Table.FromColumns(_,{"None","Quantity","Revenue","Quantity1","Revenue1"})
+),
+    #"Converted to Table" = Table.FromList(GroupedColumnsByDate, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Added Index to Map Other Columns" = Table.TransformColumns(
+#"Converted to Table", {"Column1", each 
+Table.AddIndexColumn(_,  "Index")
+}
+),
+    #"Added Index" = Table.AddIndexColumn(#"Added Index to Map Other Columns", "Date Index", 0, 1, Int64.Type),
+    MappedDatesToTables = Table.TransformColumns(
+    #"Added Index",
+    {"Date Index", each Level1Headers{_}}
+),
+    #"Expanded Column1" = Table.ExpandTableColumn(MappedDatesToTables, "Column1", {"None", "Quantity", "Revenue", "Quantity1", "Revenue1", "Index"}, {"None", "Quantity", "Revenue", "Quantity1", "Revenue1", "Index"}),
+    DataCleaned = Table.SelectRows(#"Expanded Column1", each ([None] <> null)),
+    GettingTheCommonColumns = Table.FromColumns(
+List.FirstN(ConvertColumnsToList,4),
+List.FirstN(List.RemoveNulls(
+Record.ToList(Source01{0})
+),
+4)
+
+),
+    #"Filtered Rows" = Table.SelectRows(GettingTheCommonColumns, each ([Site] <> null)),
+    #"Added Index1" = Table.NestedJoin(Table.AddIndexColumn(#"Filtered Rows", "Index", 0, 1, Int64.Type),"Index",DataCleaned,"Index","Merge"),
+    #"Expanded Merge" = Table.ExpandTableColumn(#"Added Index1", "Merge", {"None", "Quantity", "Revenue", "Quantity1", "Revenue1", "Date Index"}, {"None", "Quantity", "Revenue", "Quantity1", "Revenue1", "Date Index"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Expanded Merge",{{"None", "Uploaded to System"}}),
+    #"Reordered Columns" = Table.ReorderColumns(#"Renamed Columns",{"Site", "site Name", "Machine", "OIC", "Index", "Date Index", "Uploaded to System", "Quantity", "Revenue", "Quantity1", "Revenue1"}),
+    #"Unpivoted Columns" = Table.UnpivotOtherColumns(#"Reordered Columns", {"Site", "site Name", "Machine", "OIC", "Index", "Date Index", "Uploaded to System"}, "Attribute", "Value"),
+    #"Added Custom" = Table.AddColumn(#"Unpivoted Columns", "Flag", each if Text.Contains([Attribute],"1") then 0 else 1),
+    Custom1 = Table.TransformColumns(
+    #"Added Custom",
+    {"Flag", each Level2Headers{if _ = 0 then 1 else 0}}
+),
+    #"Renamed Columns1" = Table.RenameColumns(Custom1,{{"Flag", "Card or Cash"}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Renamed Columns1","1","",Replacer.ReplaceText,{"Attribute"}),
+    #"Reordered Columns1" = Table.ReorderColumns(#"Replaced Value",{"Site", "site Name", "Machine", "OIC", "Index", "Date Index", "Uploaded to System", "Card or Cash", "Attribute", "Value"}),
+    #"Pivoted Column" = Table.Pivot(#"Reordered Columns1", List.Distinct(#"Reordered Columns1"[Attribute]), "Attribute", "Value"),
+    #"Filtered Rows1" = Table.SelectRows(#"Pivoted Column", each [Quantity] <> "N/A"),
+    #"Renamed Columns2" = Table.RenameColumns(#"Filtered Rows1",{{"Date Index", "Date"}}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns2",{{"Quantity", Int64.Type}, {"Revenue", Int64.Type}}),
+    #"Removed Errors" = Table.RemoveRowsWithErrors(#"Changed Type", {"Quantity"})
+in
+    #"Removed Errors"
